@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">GrnKStudio Panel - Dashboard</title>
+    <!-- Ikony FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Biblioteka JSZip do generowania paczek ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: #080c14;
+            color: #f1f5f9;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR / LEWY PASEK */
+        .sidebar {
+            width: 250px;
+            background-color: #0d121d;
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 15px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: #10b981;
+        }
+
+        .menu-category {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 18px 0 8px 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 1rem;
+        }
+
+        .nav-item:hover {
+            background-color: #1a2333;
+            color: #f1f5f9;
+        }
+
+        .nav-item.active {
+            background-color: #1e293b;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* MAIN CONTENT / GŁÓWNA ZAWARTOŚĆ */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* TOPBAR / GÓRNY PASEK */
+        .topbar {
+            height: 65px;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 30px;
+            gap: 15px;
+            background-color: #0d121d;
+            position: relative;
+        }
+
+        .topbar-icon-wrap {
+            position: relative;
+        }
+
+        .topbar-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background-color: #161f2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            cursor: pointer;
+            position: relative;
+            transition: 0.2s;
+        }
+
+        .topbar-icon:hover {
+            background-color: #1e293b;
+            color: #ffffff;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background-color: #ef4444;
+            color: white;
+            font-size: 0.6rem;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .notification-count.active {
+            display: flex;
+        }
+
+        /* MENU POWIADOMIEN I PROFILU */
+        .notifications-dropdown, .profile-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 280px;
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .notifications-dropdown.show, .profile-dropdown.show {
+            display: flex;
+        }
+
+        .dropdown-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dropdown-header h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .mark-read-btn {
+            font-size: 0.7rem;
+            color: #10b981;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-weight: 600;
+        }
+
+        .notifications-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .user-avatar-wrap {
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            color: #080c14;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .discord-login-btn {
+            background-color: #5865F2;
+            color: #ffffff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px;
+            transition: 0.2s;
+        }
+
+        .discord-login-btn:hover {
+            background-color: #4752C4;
+        }
+
+        .discord-logout-btn {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin: 15px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .discord-logout-btn:hover {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .profile-info-box {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .profile-info-box img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+        }
+
+        .profile-info-text h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .profile-info-text p {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .content {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            flex-grow: 1;
+        }
+
+        /* WIDOKI */
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active-view {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            flex-grow: 1;
+        }
+
+        /* BANNER POWITALNY */
+        .welcome-banner {
+            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), rgba(13, 18, 29, 0.8));
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-tag {
+            display: inline-block;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .welcome-banner h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .welcome-banner h1 span {
+            color: #10b981;
+        }
+
+        .welcome-banner p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+
+        .welcome-bg-icon {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 6rem;
+            color: rgba(30, 41, 59, 0.5);
+        }
+
+        /* SEKCJE I KARTY */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background-color: #10b981;
+            border-radius: 2px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            transition: border-color 0.2s, transform 0.2s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            border-color: #10b981;
+            transform: translateY(-2px);
+        }
+
+        .card-highlight {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            background-color: #161f2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .card-info h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .card-info p {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.55rem;
+            background-color: #ef4444;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* STATYSTYKI */
+        .stat-card {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            color: #1e293b;
+        }
+
+        .stat-icon.green { color: #10b981; }
+
+        /* DARMOWA STREFA */
+        .free-zone-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .back-btn {
+            align-self: flex-start;
+            background-color: #131b2e;
+            border: 1px solid #1e293b;
+            color: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .back-btn:hover {
+            border-color: #10b981;
+            background-color: #1a2333;
+        }
+
+        .free-zone-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .free-zone-subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .resource-card {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .resource-card:hover {
+            border-color: #10b981;
+            transform: translateY(-3px);
+        }
+
+        .resource-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background-color: #161f2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .resource-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* PODSTRONA KATEGORII */
+        .category-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .category-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .category-title-wrap h2 {
+            font-size: 1.6rem;
+            font-weight: 800;
+        }
+
+        .search-box-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-input {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 8px 14px;
+            color: #f1f5f9;
+            font-size: 0.85rem;
+            outline: none;
+            width: 220px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #10b981;
+        }
+
+        .filter-btn {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            color: #94a3b8;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .filter-btn:hover {
+            color: #ffffff;
+            border-color: #10b981;
+        }
+
+        .empty-state {
+            background-color: #0d121d;
+            border: 1px dashed #1e293b;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .empty-state p {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        /* WIDOK OGŁOSZEŃ */
+        .announcements-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .announcements-header-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            background-color: #161f2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #10b981;
+            font-size: 1.2rem;
+        }
+
+        .announcements-header-text h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .announcements-header-text p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .announcements-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .announcements-footer-bar {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .announcements-footer-bar i {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .announcements-footer-info h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .announcements-footer-info p {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* NARZĘDZIA / GENERATORY */
+        .tool-container {
+            background-color: #0d121d;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tool-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tool-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .tool-textarea, .tool-input, .tool-select {
+            background-color: #161f2e;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: #f1f5f9;
+            font-size: 0.95rem;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .tool-textarea:focus, .tool-input:focus, .tool-select:focus {
+            border-color: #10b981;
+        }
+
+        .tool-output-box {
+            background-color: #080c14;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            color: #38bdf8;
+            min-height: 80px;
+            word-break: break-all;
+        }
+
+        .preview-box {
+            background-color: #161f2e;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .color-pickers-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-picker-group input[type="color"] {
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .style-buttons-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .style-btn {
+            background-color: #161f2e;
+            border: 1px solid #1e293b;
+            color: #94a3b8;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .style-btn.active {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .copy-btn, .action-btn {
+            background-color: #10b981;
+            color: #080c14;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            align-self: flex-start;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .save-btn {
+            background-color: #38bdf8;
+            color: #080c14;
+        }
+
+        .save-btn:hover {
+            background-color: #0284c7;
+            color: #ffffff;
+        }
+
+        .copy-btn:hover, .action-btn:hover {
+            background-color: #059669;
+            color: #ffffff;
+        }
+
+        /* EDYTOR PIKSELI TEXTUREPACKÓW */
+        .paint-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background-color: #161f2e;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        .paint-canvas-wrapper {
+            position: relative;
+            width: 256px;
+            height: 256px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #1e293b;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            background-image: linear-gradient(45deg, #111827 25%, transparent 25%), linear-gradient(-45deg, #111827 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #111827 75%), linear-gradient(-45deg, transparent 75%, #111827 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        .paint-canvas {
+            width: 256px;
+            height: 256px;
+            image-rendering: pixelated;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .texture-preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #161f2e;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 25px;
+            gap: 15px;
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(13, 18, 29, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #10b981;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        /* LISTA ZAPISANYCH PRZEDMIOTÓW */
+        .pack-items-list {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            background-color: #161f2e;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            min-height: 70px;
+            align-items: center;
+        }
+
+        .pack-item-chip {
+            background-color: #0d121d;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .pack-item-chip img {
+            width: 24px;
+            height: 24px;
+            image-rendering: pixelated;
+        }
+
+        .remove-chip-btn {
+            color: #ef4444;
+            cursor: pointer;
+            margin-left: 5px;
+            transition: 0.2s;
+        }
+
+        .remove-chip-btn:hover {
+            color: #dc2626;
+        }
+
+        /* NARZĘDZIE REMOVE BG */
+        .upload-box {
+            border: 2px dashed #1e293b;
+            border-radius: 12px;
+            padding: 35px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            background-color: #161f2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-box:hover {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .upload-box i {
+            font-size: 2.2rem;
+            color: #10b981;
+        }
+
+        .bg-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .bg-preview-card {
+            background-color: #161f2e;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bg-preview-card h4 {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .bg-img-box {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image: linear-gradient(45deg, #111827 25%, transparent 25%), linear-gradient(-45deg, #111827 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #111827 75%), linear-gradient(-45deg, transparent 75%, #111827 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+            border: 1px solid #1e293b;
+        }
+
+        .bg-img-box img, .bg-img-box canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LEWY PASEK / SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo">
+            <span>GrnKStudio</span> Panel
+        </div>
+
+        <div class="menu-category">Główne</div>
+        <a class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')"><i class="fa-solid fa-table-cells-large"></i> Pulpit</a>
+        <a class="nav-item" id="nav-announcements" onclick="switchView('announcements')"><i class="fa-solid fa-bullhorn"></i> Ogłoszenia</a>
+
+        <div class="menu-category">Strefy</div>
+        <a class="nav-item" id="nav-free-zone" onclick="switchView('freeZone')"><i class="fa-solid fa-gift"></i> Darmowa Strefa</a>
+        <a class="nav-item" onclick="openPremium()"><i class="fa-solid fa-wand-magic-sparkles"></i> Strefa Premium</a>
+
+        <div class="menu-category">Narzędzia</div>
+        <a class="nav-item" id="nav-caps" onclick="switchView('capsGenerator')"><i class="fa-solid fa-font"></i> Generator Kapitałek</a>
+        <a class="nav-item" id="nav-gradient" onclick="switchView('gradientGenerator')"><i class="fa-solid fa-palette"></i> Generator Gradientów</a>
+        <a class="nav-item" id="nav-texture" onclick="switchView('textureGenerator')"><i class="fa-solid fa-cubes"></i> Generator TexturePacków</a>
+        <a class="nav-item" id="nav-removebg" onclick="switchView('removeBgTool')"><i class="fa-solid fa-image"></i> Usuń tło</a>
+    </div>
+
+    <!-- GŁÓWNY OBSZAR STRONY -->
+    <div class="main-wrapper">
+        
+        <!-- GÓRNY PASEK / TOPBAR -->
+        <div class="topbar">
+            <div class="topbar-icon-wrap">
+                <div class="topbar-icon" onclick="toggleNotifications()">
+                    <i class="fa-regular fa-bell"></i>
+                    <div class="notification-count" id="notif-badge">1</div>
+                </div>
+
+                <div class="notifications-dropdown" id="notif-dropdown">
+                    <div class="dropdown-header">
+                        <h4>Powiadomienia</h4>
+                        <button class="mark-read-btn" onclick="clearNotifications()">Oznacz jako przeczytane</button>
+                    </div>
+                    <div class="notifications-list" id="notif-list">
+                        <div class="empty-state" style="padding: 30px 10px; border: none;">
+                            <i class="fa-regular fa-bell-slash" style="font-size: 1.5rem;"></i>
+                            <p>Brak nowych powiadomień</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AWATAR UŻYTKOWNIKA Z MENU LOGOWANIA DISCORD -->
+            <div class="user-avatar-wrap">
+                <div class="user-avatar" id="user-avatar-btn" onclick="toggleProfileDropdown()">G</div>
+
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <div id="logged-out-view">
+                        <div class="dropdown-header">
+                            <h4>Konto</h4>
+                        </div>
+                        <button class="discord-login-btn" onclick="loginWithDiscord()">
+                            <i class="fa-brands fa-discord" style="font-size: 1.1rem;"></i> Zaloguj przez Discord
+                        </button>
+                    </div>
+
+                    <div id="logged-in-view" style="display: none;">
+                        <div class="profile-info-box">
+                            <img id="discord-user-avatar" src="" alt="Avatar">
+                            <div class="profile-info-text">
+                                <h4 id="discord-user-name">Użytkownik</h4>
+                                <p id="discord-user-id">ID: 00000000</p>
+                            </div>
+                        </div>
+                        <button class="discord-logout-btn" onclick="logoutDiscord()">
+                            <i class="fa-solid fa-right-from-bracket"></i> Wyloguj się
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ZAWARTOŚĆ -->
+        <div class="content">
+
+            <!-- WIDOK 1: DASHBOARD / PULPIT -->
+            <div id="dashboard-view" class="view-section active-view">
+                <div class="welcome-banner">
+                    <div class="welcome-tag">Pulpit nawigacyjny</div>
+                    <h1>Cześć <span id="welcome-user-name">GrnKStudio</span>!</h1>
+                    <p>Zarządzaj swoim kontem GrnKStudio z jednego miejsca. Sprawdzaj swoje zamówienia, monitoruj ich status i miej dostęp do wszystkich ważnych informacji.</p>
+                    <div class="welcome-bg-icon">{ }</div>
+                </div>
+
+                <div class="section-title">Informacje</div>
+                <div class="grid-4">
+                    <div class="card card-highlight" onclick="switchView('freeZone')">
+                        <span class="card-badge">• NOWOŚĆ</span>
+                        <div class="card-icon"><i class="fa-solid fa-gift"></i></div>
+                        <div class="card-info">
+                            <h3>Darmowa Strefa</h3>
+                            <p>Przejdź do darmowej strefy</p>
+                        </div>
+                    </div>
+                    <div class="card" onclick="openPremium()">
+                        <div class="card-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                        <div class="card-info">
+                            <h3>Strefa Premium</h3>
+                            <p>Przejdź do strefy premium</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Twoje Statystyki</div>
+                <div class="grid-4">
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Twoje zamówienia</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-regular fa-clipboard"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Aktywne usługi na hostingu</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-server"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Aktualnie dostępnych zniżek</div>
+                        </div>
+                        <div class="stat-icon"><i class="fa-solid fa-bolt"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-number">0.00 PLN</div>
+                            <div class="stat-label">Wydanych pieniędzy</div>
+                        </div>
+                        <div class="stat-icon green"><i class="fa-solid fa-circle-dollar-to-slot"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDOK 2: DARMOWA STREFA -->
+            <div id="free-zone-view" class="view-section">
+                <div class="free-zone-header">
+                    <button class="back-btn" onclick="switchView('dashboard')">
+                        <i class="fa-solid fa-arrow-left"></i> Strona Główna
+                    </button>
+                    <h2 class="free-zone-title">Darmowe zasoby</h2>
+                    <p class="free-zone-subtitle">Wybierz kategorię, aby przeglądać setki udostępnionych materiałów.</p>
+                </div>
+
+                <div class="resources-grid">
+                    <div class="resource-card" onclick="openCategory('Pluginy')">
+                        <div class="resource-icon"><i class="fa-solid fa-puzzle-piece"></i></div>
+                        <h3>Pluginy</h3>
+                    </div>
+                    <div class="resource-card" onclick="openCategory('Skrypty')">
+                        <div class="resource-icon"><i class="fa-solid fa-code"></i></div>
+                        <h3>Skrypty</h3>
+                    </div>
+                    <div class="resource-card" onclick="openCategory('Configi')">
+                        <div class="resource-icon"><i class="fa-solid fa-sliders"></i></div>
+                        <h3>Configi</h3>
+                    </div>
+                    <div class="resource-card" onclick="openCategory('Budowle MC')">
+                        <div class="resource-icon"><i class="fa-solid fa-city"></i></div>
+                        <h3>Budowle MC</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDOK 3: PODSTRONA KATEGORII -->
+            <div id="category-detail-view" class="view-section">
+                <button class="back-btn" onclick="switchView('freeZone')">
+                    <i class="fa-solid fa-arrow-left"></i> Wybierz kategorię
+                </button>
+
+                <div class="category-header-bar">
+                    <div class="category-title-wrap">
+                        <div class="card-icon" id="cat-icon-holder"><i class="fa-solid fa-puzzle-piece"></i></div>
+                        <h2 id="category-page-title">Darmowe Pluginy</h2>
+                    </div>
+
+                    <div class="search-box-wrap">
+                        <input type="text" class="search-input" placeholder="Wyszukaj...">
+                        <button class="filter-btn"><i class="fa-solid fa-sliders"></i></button>
+                    </div>
+                </div>
+
+                <div class="empty-state">
+                    <i class="fa-solid fa-box-open"></i>
+                    <h3>Brak wpisów</h3>
+                    <p>W tej kategorii nie ma jeszcze udostępnionych plików. Zostaną dodane niebawem!</p>
+                </div>
+            </div>
+
+            <!-- WIDOK 4: OGŁOSZENIA -->
+            <div id="announcements-view" class="view-section">
+                <div class="announcements-header">
+                    <div class="announcements-header-icon"><i class="fa-solid fa-bullhorn"></i></div>
+                    <div class="announcements-header-text">
+                        <h2>ogłoszenia</h2>
+                        <p>Najważniejsze informacje dotyczące GrnKStudio.pl</p>
+                    </div>
+                </div>
+
+                <div class="announcements-container">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <h3>Brak ogłoszeń</h3>
+                        <p>W tej chwili nie ma żadnych opublikowanych ogłoszeń.</p>
+                    </div>
+                </div>
+
+                <div class="announcements-footer-bar">
+                    <i class="fa-solid fa-lock"></i>
+                    <div class="announcements-footer-info">
+                        <h4>To kanał ogłoszeniowy</h4>
+                        <p>Tylko administratorzy mogą publikować wiadomości.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDOK 5: GENERATOR KAPITAŁEK -->
+            <div id="caps-generator-view" class="view-section">
+                <div class="announcements-header">
+                    <div class="announcements-header-icon"><i class="fa-solid fa-font"></i></div>
+                    <div class="announcements-header-text">
+                        <h2>Generator Kapitałek</h2>
+                        <p>Zamień swój tekst na małe lub duże kapitalki</p>
+                    </div>
+                </div>
+
+                <div class="tool-container">
+                    <div class="tool-group">
+                        <label>Wpisz tekst:</label>
+                        <textarea id="caps-input" class="tool-textarea" placeholder="Wpisz tekst tutaj..." oninput="generateCaps()">GrnKStudio Panel</textarea>
+                    </div>
+                    <div class="tool-group">
+                        <label>Wynik:</label>
+                        <div id="caps-output" class="tool-output-box">ɢʀɴᴋꜱᴛᴜᴅɪᴏ ᴘᴀɴᴇʟ</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyCaps()"><i class="fa-regular fa-copy"></i> Skopiuj tekst</button>
+                </div>
+            </div>
+
+            <!-- WIDOK 6: GENERATOR GRADIENTÓW -->
+            <div id="gradient-generator-view" class="view-section">
+                <div class="announcements-header">
+                    <div class="announcements-header-icon"><i class="fa-solid fa-palette"></i></div>
+                    <div class="announcements-header-text">
+                        <h2>Generator Gradientów</h2>
+                        <p>Stwórz kolorowy gradient dla swojego serwera Minecraft lub Discord</p>
+                    </div>
+                </div>
+
+                <div class="tool-container">
+                    <div class="tool-group">
+                        <label>Tekst do gradientu:</label>
+                        <input type="text" id="grad-text" class="tool-input" value="GrnKStudio" oninput="updateGradient()">
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Kolory gradientu (Początek i Koniec):</label>
+                        <div class="color-pickers-row">
+                            <div class="color-picker-group">
+                                <input type="color" id="grad-color1" value="#10b981" oninput="updateGradient()">
+                                <span style="font-size: 0.8rem; color:#94a3b8;">Kolor 1</span>
+                            </div>
+                            <div class="color-picker-group">
+                                <input type="color" id="grad-color2" value="#38bdf8" oninput="updateGradient()">
+                                <span style="font-size: 0.8rem; color:#94a3b8;">Kolor 2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Format kodu:</label>
+                        <select id="grad-format" class="tool-select" onchange="updateGradient()">
+                            <option value="hex">Standardowy HEX (#454549)</option>
+                            <option value="tag">&lt;gradient:color1:color2&gt;</option>
+                            <option value="legacy">Minecraft (&amp;x&amp;r...)</option>
+                        </select>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Styl tekstu:</label>
+                        <div class="style-buttons-grid">
+                            <button type="button" class="style-btn" id="style-bold" onclick="toggleStyle('bold')">Pogrubienie</button>
+                            <button type="button" class="style-btn active" id="style-nobold" onclick="toggleStyle('nobold')">Bez pogrubienia</button>
+                            <button type="button" class="style-btn" id="style-italic" onclick="toggleStyle('italic')">Przekrzywione</button>
+                            <button type="button" class="style-btn" id="style-strike" onclick="toggleStyle('strike')">Skreślone</button>
+                            <button type="button" class="style-btn" id="style-underline" onclick="toggleStyle('underline')">Podkreślone</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Podgląd na żywo:</label>
+                        <div id="grad-preview" class="preview-box">GrnKStudio</div>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Wygenerowany kod:</label>
+                        <div id="grad-output" class="tool-output-box"></div>
+                    </div>
+
+                    <button class="copy-btn" onclick="copyGradient()"><i class="fa-regular fa-copy"></i> Skopiuj wygenerowany kod</button>
+                </div>
+            </div>
+
+            <!-- WIDOK 7: GENERATOR TEXTUREPACKÓW -->
+            <div id="texture-generator-view" class="view-section">
+                <div class="announcements-header">
+                    <div class="announcements-header-icon"><i class="fa-solid fa-cubes"></i></div>
+                    <div class="announcements-header-text">
+                        <h2>Edytor Tekstur i Generator ResourcePacków</h2>
+                        <p>Edytuj wiele przedmiotów naraz i pobierz spakowany plik .zip dla wszystkich!</p>
+                    </div>
+                </div>
+
+                <div class="tool-container">
+                    <div class="tool-group">
+                        <label>Wybierz przedmiot do edycji:</label>
+                        <select id="item-select" class="tool-select" onchange="loadAndProcessItemTexture()">
+                            <option value="diamond_sword">Diamentowy Miecz (diamond_sword)</option>
+                            <option value="netherite_sword">Netheritowy Miecz (netherite_sword)</option>
+                            <option value="golden_sword">Złoty Miecz (golden_sword)</option>
+                            <option value="iron_sword">Żelazny Miecz (iron_sword)</option>
+                            <option value="diamond_pickaxe">Diamentowy Kilof (diamond_pickaxe)</option>
+                            <option value="diamond_chestplate">Diamentowy Napierśnik (diamond_chestplate)</option>
+                            <option value="diamond_helmet">Diamentowy Hełm (diamond_helmet)</option>
+                            <option value="golden_apple">Złote Jabłko (golden_apple)</option>
+                            <option value="enchanted_golden_apple">Zaklęte Złote Jabłko (enchanted_golden_apple)</option>
+                            <option value="totem_of_undying">Totem Nieśmiertelności (totem_of_undying)</option>
+                            <option value="elytra">Elytra (elytra)</option>
+                            <option value="bow">Łuk (bow)</option>
+                            <option value="ender_pearl">Ender Perła (ender_pearl)</option>
+                            <option value="diamond">Diament (diamond)</option>
+                        </select>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Tryb edycji:</label>
+                        <div class="mode-selector">
+                            <button type="button" id="mode-tint" class="style-btn active" onclick="setEditMode('tint')"><i class="fa-solid fa-wand-magic-sparkles"></i> Automatyczny odcień</button>
+                            <button type="button" id="mode-draw" class="style-btn" onclick="setEditMode('draw')"><i class="fa-solid fa-paintbrush"></i> Ręczne malowanie</button>
+                        </div>
+                    </div>
+
+                    <div id="tint-controls" class="tool-group">
+                        <label>Kolor automatycznej powłoki:</label>
+                        <div class="color-pickers-row">
+                            <div class="color-picker-group">
+                                <input type="color" id="item-color" value="#a855f7" oninput="loadAndProcessItemTexture()">
+                                <span style="font-size: 0.8rem; color:#94a3b8;">Wybierz kolor powłoki</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="draw-controls" class="tool-group" style="display: none;">
+                        <label>Przybornik malarza:</label>
+                        <div class="paint-toolbar">
+                            <div class="color-picker-group">
+                                <input type="color" id="draw-color" value="#ef4444">
+                                <span style="font-size: 0.85rem; color:#f1f5f9; font-weight:600;">Kolor pędzla</span>
+                            </div>
+                            <div style="height: 25px; width: 1px; background:#1e293b; margin: 0 5px;"></div>
+                            <button type="button" id="tool-brush" class="style-btn active" onclick="setTool('brush')"><i class="fa-solid fa-pen"></i> Pędzel</button>
+                            <button type="button" id="tool-eraser" class="style-btn" onclick="setTool('eraser')"><i class="fa-solid fa-eraser"></i> Gumka</button>
+                            <button type="button" id="tool-picker" class="style-btn" onclick="setTool('picker')"><i class="fa-solid fa-eye-dropper"></i> Pipeta</button>
+                            <button type="button" class="style-btn" onclick="loadAndProcessItemTexture()"><i class="fa-solid fa-rotate-left"></i> Resetuj</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-group">
+                        <label>Płótno edytowanego przedmiotu (16x16):</label>
+                        <div class="texture-preview-container">
+                            <div class="loading-overlay" id="tex-loader">
+                                <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                                <span>Pobieranie oryginalnej tekstury...</span>
+                            </div>
+                            
+                            <div class="paint-canvas-wrapper">
+                                <canvas id="item-canvas" class="paint-canvas" width="16" height="16"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="action-btn save-btn" onclick="saveCurrentItemToPack()"><i class="fa-solid fa-plus"></i> Zapisz ten przedmiot do paczki</button>
+                        <button class="action-btn" onclick="downloadTexturePack()"><i class="fa-solid fa-download"></i> Pobierz TexturePack (.zip)</button>
+                    </div>
+
+                    <div class="tool-group" style="margin-top: 10px;">
+                        <label>Przedmioty w Twojej paczce ZIP (<span id="saved-count">0</span>):</label>
+                        <div class="pack-items-list" id="pack-items-container">
+                            <span style="font-size: 0.85rem; color: #64748b;">Brak zapisanych przedmiotów. Zmodyfikuj przedmiot i kliknij "Zapisz ten przedmiot do paczki".</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WIDOK 8: USUŃ TŁO -->
+            <div id="removebg-view" class="view-section">
+                <div class="announcements-header">
+                    <div class="announcements-header-icon"><i class="fa-solid fa-image"></i></div>
+                    <div class="announcements-header-text">
+                        <h2>Usuwanie tła z obrazu</h2>
+                        <p>Wgraj zdjęcie, a skrypt automatycznie wytnie jednolite tło i zapisze przezroczysty plik PNG!</p>
+                    </div>
+                </div>
+
+                <div class="tool-container">
+                    <div class="upload-box" onclick="document.getElementById('bg-file-input').click()">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <h3>Przeciągnij lub kliknij, aby wgrać obraz</h3>
+                        <p style="font-size: 0.8rem; color: #64748b;">Wspierane formaty: PNG, JPG, WEBP</p>
+                        <input type="file" id="bg-file-input" accept="image/*" style="display: none;" onchange="handleBgImageUpload(event)">
+                    </div>
+
+                    <div class="tool-group" id="bg-process-controls" style="display: none;">
+                        <label>Czułość wycinania tła (Tolerancja koloru):</label>
+                        <input type="range" id="bg-tolerance" class="tool-input" min="5" max="100" value="30" oninput="processRemoveBg()">
+                    </div>
+
+                    <div class="bg-preview-container" id="bg-preview-area" style="display: none;">
+                        <div class="bg-preview-card">
+                            <h4>Oryginalny obraz</h4>
+                            <div class="bg-img-box">
+                                <img id="bg-orig-img" src="" alt="Oryginał">
+                            </div>
+                        </div>
+
+                        <div class="bg-preview-card">
+                            <h4>Obraz bez tła (Przezroczysty PNG)</h4>
+                            <div class="bg-img-box">
+                                <canvas id="bg-result-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="action-btn" id="bg-download-btn" style="display: none;" onclick="downloadBgResult()"><i class="fa-solid fa-download"></i> Pobierz wycięty obraz (.png)</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SKRYPTY -->
+    <script>
+        /* DISCORD OAUTH2 LOGIC */
+        // TUTAJ WKLEJ SWÓJ CLIENT_ID Z DISCORD DEVELOPER PORTAL
+        const DISCORD_CLIENT_ID = '1560007006406967377';
+
+        function loginWithDiscord() {
+            if (DISCORD_CLIENT_ID === 'TWÓJ_CLIENT_ID_DISCORD') {
+                alert('Musisz podać swój CLIENT_ID z Discord Developer Portal w kodzie HTML!');
+                return;
+            }
+
+            const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+            const discordUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=identify`;
+            window.location.href = discordUrl;
+        }
+
+        function checkDiscordAuth() {
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            const accessToken = fragment.get('access_token');
+
+            if (accessToken) {
+                localStorage.setItem('discord_token', accessToken);
+                window.location.hash = ''; // Wyszczyść token z paska adresu
+            }
+
+            const storedToken = localStorage.getItem('discord_token');
+
+            if (storedToken) {
+                fetch('https://discord.com/api/users/@me', {
+                    headers: {
+                        authorization: `Bearer ${storedToken}`
+                    }
+                })
+                .then(res => res.json())
+                .then(user => {
+                    if (user.username) {
+                        displayLoggedInUser(user);
+                    } else {
+                        logoutDiscord();
+                    }
+                })
+                .catch(() => logoutDiscord());
+            }
+        }
+
+        function displayLoggedInUser(user) {
+            document.getElementById('logged-out-view').style.display = 'none';
+            document.getElementById('logged-in-view').style.display = 'block';
+
+            const avatarUrl = user.avatar 
+                ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                : `https://cdn.discordapp.com/embed/avatars/0.png`;
+
+            document.getElementById('user-avatar-btn').innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+            document.getElementById('discord-user-avatar').src = avatarUrl;
+            document.getElementById('discord-user-name').innerText = user.global_name || user.username;
+            document.getElementById('discord-user-id').innerText = `@${user.username}`;
+            
+            // Podmień powitanie w Dashboardzie
+            document.getElementById('welcome-user-name').innerText = user.global_name || user.username;
+        }
+
+        function logoutDiscord() {
+            localStorage.removeItem('discord_token');
+            document.getElementById('logged-out-view').style.display = 'block';
+            document.getElementById('logged-in-view').style.display = 'none';
+            document.getElementById('user-avatar-btn').innerText = 'G';
+            document.getElementById('welcome-user-name').innerText = 'GrnKStudio';
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            dropdown.classList.toggle('show');
+            document.getElementById('notif-dropdown').classList.remove('show');
+        }
+
+        // Zainicjuj sprawdzanie logowania przy starcie strony
+        window.addEventListener('load', checkDiscordAuth);
+
+        /* SYSTEM PRZEŁĄCZANIA WIDOKÓW */
+        let savedPackTextures = {};
+
+        function switchView(viewName) {
+            document.getElementById('dashboard-view').classList.remove('active-view');
+            document.getElementById('free-zone-view').classList.remove('active-view');
+            document.getElementById('category-detail-view').classList.remove('active-view');
+            document.getElementById('announcements-view').classList.remove('active-view');
+            document.getElementById('caps-generator-view').classList.remove('active-view');
+            document.getElementById('gradient-generator-view').classList.remove('active-view');
+            document.getElementById('texture-generator-view').classList.remove('active-view');
+            document.getElementById('removebg-view').classList.remove('active-view');
+
+            const navItems = document.querySelectorAll('.sidebar .nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+
+            if (viewName === 'dashboard') {
+                document.title = "GrnKStudio Panel - Dashboard";
+                document.getElementById('dashboard-view').classList.add('active-view');
+                document.getElementById('nav-dashboard').classList.add('active');
+            } else if (viewName === 'freeZone') {
+                document.title = "Darmowa Strefa - GrnKStudio.pl";
+                document.getElementById('free-zone-view').classList.add('active-view');
+                document.getElementById('nav-free-zone').classList.add('active');
+            } else if (viewName === 'announcements') {
+                document.title = "Ogłoszenia - GrnKStudio.pl";
+                document.getElementById('announcements-view').classList.add('active-view');
+                document.getElementById('nav-announcements').classList.add('active');
+            } else if (viewName === 'capsGenerator') {
+                document.title = "Narzędzia - GrnKStudio.pl";
+                document.getElementById('caps-generator-view').classList.add('active-view');
+                document.getElementById('nav-caps').classList.add('active');
+                generateCaps();
+            } else if (viewName === 'gradientGenerator') {
+                document.title = "Narzędzia - GrnKStudio.pl";
+                document.getElementById('gradient-generator-view').classList.add('active-view');
+                document.getElementById('nav-gradient').classList.add('active');
+                updateGradient();
+            } else if (viewName === 'textureGenerator') {
+                document.title = "Narzędzia - GrnKStudio.pl";
+                document.getElementById('texture-generator-view').classList.add('active-view');
+                document.getElementById('nav-texture').classList.add('active');
+                initPaintCanvas();
+                loadAndProcessItemTexture();
+            } else if (viewName === 'removeBgTool') {
+                document.title = "Narzędzia - GrnKStudio.pl";
+                document.getElementById('removebg-view').classList.add('active-view');
+                document.getElementById('nav-removebg').classList.add('active');
+            }
+        }
+
+        function openCategory(catName) {
+            document.getElementById('free-zone-view').classList.remove('active-view');
+            document.getElementById('category-detail-view').classList.add('active-view');
+
+            const titleElem = document.getElementById('category-page-title');
+            const iconHolder = document.getElementById('cat-icon-holder');
+
+            titleElem.innerText = 'Darmowe ' + catName;
+
+            if(catName === 'Pluginy') {
+                iconHolder.innerHTML = '<i class="fa-solid fa-puzzle-piece"></i>';
+            } else if(catName === 'Skrypty') {
+                iconHolder.innerHTML = '<i class="fa-solid fa-code"></i>';
+            } else if(catName === 'Configi') {
+                iconHolder.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+            } else if(catName === 'Budowle MC') {
+                iconHolder.innerHTML = '<i class="fa-solid fa-city"></i>';
+            }
+        }
+
+        function openPremium() {
+            alert('Przechodzisz do Strefy Premium');
+        }
+
+        /* KAPITAŁKI */
+        const smallCapsMap = {
+            'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ꜰ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ꞯ', 'r': 'ʀ', 's': 'ꜱ', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
+            'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ꜰ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ꞯ', 'R': 'ʀ', 'S': 'ꜱ', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
+        };
+
+        function generateCaps() {
+            const input = document.getElementById('caps-input').value;
+            let result = '';
+            for (let i = 0; i < input.length; i++) {
+                result += smallCapsMap[input[i]] || input[i];
+            }
+            document.getElementById('caps-output').innerText = result;
+        }
+
+        function copyCaps() {
+            navigator.clipboard.writeText(document.getElementById('caps-output').innerText).then(() => {
+                alert('Skopiowano tekst do schowka!');
+            });
+        }
+
+        /* GRADIENTY */
+        let textStyles = { bold: false, nobold: true, italic: false, strike: false, underline: false };
+
+        function toggleStyle(styleName) {
+            if (styleName === 'bold') {
+                textStyles.bold = !textStyles.bold;
+                if(textStyles.bold) textStyles.nobold = false;
+            } else if (styleName === 'nobold') {
+                textStyles.nobold = !textStyles.nobold;
+                if(textStyles.nobold) textStyles.bold = false;
+            } else {
+                textStyles[styleName] = !textStyles[styleName];
+            }
+
+            document.getElementById('style-bold').className = 'style-btn' + (textStyles.bold ? ' active' : '');
+            document.getElementById('style-nobold').className = 'style-btn' + (textStyles.nobold ? ' active' : '');
+            document.getElementById('style-italic').className = 'style-btn' + (textStyles.italic ? ' active' : '');
+            document.getElementById('style-strike').className = 'style-btn' + (textStyles.strike ? ' active' : '');
+            document.getElementById('style-underline').className = 'style-btn' + (textStyles.underline ? ' active' : '');
+
+            updateGradient();
+        }
+
+        function hexToRgb(hex) {
+            let bigint = parseInt(hex.replace('#',''), 16);
+            return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+        }
+
+        function updateGradient() {
+            const text = document.getElementById('grad-text').value || 'Tekst';
+            const c1 = hexToRgb(document.getElementById('grad-color1').value);
+            const c2 = hexToRgb(document.getElementById('grad-color2').value);
+            const format = document.getElementById('grad-format').value;
+
+            const length = text.length;
+            let outputText = '';
+
+            if (format === 'tag') {
+                outputText = `<gradient:${document.getElementById('grad-color1').value}:${document.getElementById('grad-color2').value}>${text}</gradient>`;
+            } else {
+                let parts = [];
+                for (let i = 0; i < length; i++) {
+                    let ratio = length === 1 ? 0 : i / (length - 1);
+                    let r = Math.round(c1.r + ratio * (c2.r - c1.r));
+                    let g = Math.round(c1.g + ratio * (c2.g - c1.g));
+                    let b = Math.round(c1.b + ratio * (c2.b - c1.b));
+                    let hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+                    parts.push(hex + text[i]);
+                }
+                outputText = parts.join(' ');
+            }
+
+            let styleStr = '';
+            if (textStyles.bold) styleStr += 'font-weight: bold; ';
+            if (textStyles.italic) styleStr += 'font-style: italic; ';
+            if (textStyles.strike || textStyles.underline) {
+                let dec = [];
+                if (textStyles.strike) dec.push('line-through');
+                if (textStyles.underline) dec.push('underline');
+                styleStr += `text-decoration: ${dec.join(' ')}; `;
+            }
+
+            const previewBox = document.getElementById('grad-preview');
+            previewBox.style.cssText = styleStr + `background: linear-gradient(to right, ${document.getElementById('grad-color1').value}, ${document.getElementById('grad-color2').value}); -webkit-background-clip: text; -webkit-text-fill-color: transparent;`;
+            previewBox.innerText = text;
+
+            document.getElementById('grad-output').innerText = outputText;
+        }
+
+        function copyGradient() {
+            navigator.clipboard.writeText(document.getElementById('grad-output').innerText).then(() => {
+                alert('Skopiowano kod gradientu do schowka!');
+            });
+        }
+
+        /* GENERATOR TEXTUREPACKÓW */
+        let currentEditMode = 'tint';
+        let currentTool = 'brush';
+        let isMouseDown = false;
+
+        function setEditMode(mode) {
+            currentEditMode = mode;
+            document.getElementById('mode-tint').className = 'style-btn' + (mode === 'tint' ? ' active' : '');
+            document.getElementById('mode-draw').className = 'style-btn' + (mode === 'draw' ? ' active' : '');
+
+            document.getElementById('tint-controls').style.display = mode === 'tint' ? 'flex' : 'none';
+            document.getElementById('draw-controls').style.display = mode === 'draw' ? 'flex' : 'none';
+
+            if(mode === 'tint') {
+                loadAndProcessItemTexture();
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.getElementById('tool-brush').className = 'style-btn' + (tool === 'brush' ? ' active' : '');
+            document.getElementById('tool-eraser').className = 'style-btn' + (tool === 'eraser' ? ' active' : '');
+            document.getElementById('tool-picker').className = 'style-btn' + (tool === 'picker' ? ' active' : '');
+        }
+
+        function loadAndProcessItemTexture() {
+            const itemId = document.getElementById('item-select').value;
+
+            if (savedPackTextures[itemId]) {
+                const canvas = document.getElementById('item-canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.src = savedPackTextures[itemId];
+                img.onload = function() {
+                    ctx.clearRect(0,0,16,16);
+                    ctx.drawImage(img, 0, 0);
+                }
+                return;
+            }
+
+            const targetHex = document.getElementById('item-color').value;
+            const loader = document.getElementById('tex-loader');
+            loader.classList.add('active');
+
+            const canvas = document.getElementById('item-canvas');
+            const ctx = canvas.getContext('2d');
+
+            const imgUrl = `https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.20.1/assets/minecraft/textures/item/${itemId}.png`;
+
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = imgUrl;
+
+            img.onload = function() {
+                canvas.width = 16;
+                canvas.height = 16;
+
+                ctx.clearRect(0, 0, 16, 16);
+                ctx.drawImage(img, 0, 0, 16, 16);
+
+                if (currentEditMode === 'tint') {
+                    const imgData = ctx.getImageData(0, 0, 16, 16);
+                    const data = imgData.data;
+                    const tint = hexToRgb(targetHex);
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (data[i + 3] > 10) {
+                            let brightness = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+                            data[i]     = Math.min(255, tint.r * brightness * 1.2);
+                            data[i + 1] = Math.min(255, tint.g * brightness * 1.2);
+                            data[i + 2] = Math.min(255, tint.b * brightness * 1.2);
+                        }
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                }
+                loader.classList.remove('active');
+            };
+
+            img.onerror = function() {
+                alert('Błąd pobierania oryginalnej tekstury z serwera.');
+                loader.classList.remove('active');
+            };
+        }
+
+        function saveCurrentItemToPack() {
+            const itemId = document.getElementById('item-select').value;
+            const canvas = document.getElementById('item-canvas');
+            const dataURL = canvas.toDataURL('image/png');
+
+            savedPackTextures[itemId] = dataURL;
+            renderSavedPackItems();
+        }
+
+        function removeSavedItem(itemId) {
+            delete savedPackTextures[itemId];
+            renderSavedPackItems();
+        }
+
+        function renderSavedPackItems() {
+            const container = document.getElementById('pack-items-container');
+            const keys = Object.keys(savedPackTextures);
+
+            document.getElementById('saved-count').innerText = keys.length;
+
+            if (keys.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.85rem; color: #64748b;">Brak zapisanych przedmiotów. Zmodyfikuj przedmiot i kliknij "Zapisz ten przedmiot do paczki".</span>`;
+                return;
+            }
+
+            let html = '';
+            keys.forEach(key => {
+                html += `
+                    <div class="pack-item-chip">
+                        <img src="${savedPackTextures[key]}" alt="${key}">
+                        <span>${key}</span>
+                        <i class="fa-solid fa-xmark remove-chip-btn" onclick="removeSavedItem('${key}')"></i>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function initPaintCanvas() {
+            const canvas = document.getElementById('item-canvas');
+
+            canvas.onmousedown = function(e) {
+                isMouseDown = true;
+                paintPixel(e);
+            };
+
+            canvas.onmousemove = function(e) {
+                if (isMouseDown) {
+                    paintPixel(e);
+                }
+            };
+
+            window.onmouseup = function() {
+                isMouseDown = false;
+            };
+        }
+
+        function paintPixel(e) {
+            const canvas = document.getElementById('item-canvas');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+
+            const x = Math.floor((e.clientX - rect.left) / (rect.width / 16));
+            const y = Math.floor((e.clientY - rect.top) / (rect.height / 16));
+
+            if (x < 0 || x >= 16 || y < 0 || y >= 16) return;
+
+            if (currentTool === 'brush') {
+                const color = document.getElementById('draw-color').value;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+            } else if (currentTool === 'eraser') {
+                ctx.clearRect(x, y, 1, 1);
+            } else if (currentTool === 'picker') {
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                if (pixel[3] > 0) {
+                    const hex = "#" + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1);
+                    document.getElementById('draw-color').value = hex;
+                    setTool('brush');
+                }
+            }
+        }
+
+        async function downloadTexturePack() {
+            saveCurrentItemToPack();
+
+            const zip = new JSZip();
+
+            const mcmetaContent = JSON.stringify({
+                "pack": {
+                    "pack_format": 15,
+                    "description": "ResourcePack stworzony w GrnKStudio Panel"
+                }
+            }, null, 2);
+
+            zip.file("pack.mcmeta", mcmetaContent);
+
+            const keys = Object.keys(savedPackTextures);
+            keys.forEach(itemId => {
+                const base64Data = savedPackTextures[itemId].replace(/^data:image\/png;base64,/, "");
+                zip.file(`assets/minecraft/textures/item/${itemId}.png`, base64Data, {base64: true});
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `GrnKStudio_MultiItem_ResourcePack.zip`;
+                link.click();
+            });
+        }
+
+        /* NARZĘDZIE USUWANIA TŁA (REMOVE BG) */
+        let bgLoadedImg = null;
+
+        function handleBgImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                bgLoadedImg = new Image();
+                bgLoadedImg.src = e.target.result;
+                bgLoadedImg.onload = function() {
+                    document.getElementById('bg-orig-img').src = e.target.result;
+                    document.getElementById('bg-process-controls').style.display = 'flex';
+                    document.getElementById('bg-preview-area').style.display = 'grid';
+                    document.getElementById('bg-download-btn').style.display = 'flex';
+                    processRemoveBg();
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function processRemoveBg() {
+            if (!bgLoadedImg) return;
+
+            const canvas = document.getElementById('bg-result-canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = bgLoadedImg.width;
+            canvas.height = bgLoadedImg.height;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bgLoadedImg, 0, 0);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            const bgR = data[0];
+            const bgG = data[1];
+            const bgB = data[2];
+
+            const tolerance = parseInt(document.getElementById('bg-tolerance').value);
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                let diff = Math.sqrt((r - bgR)**2 + (g - bgG)**2 + (b - bgB)**2);
+
+                if (diff < tolerance) {
+                    data[i + 3] = 0;
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function downloadBgResult() {
+            const canvas = document.getElementById('bg-result-canvas');
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'obraz_bez_tla_GrnKStudio.png';
+            link.click();
+        }
+
+        /* POWIADOMIENIA */
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notif-dropdown');
+            dropdown.classList.toggle('show');
+            document.getElementById('profile-dropdown').classList.remove('show');
+        }
+
+        function clearNotifications() {
+            const badge = document.getElementById('notif-badge');
+            badge.classList.remove('active');
+            badge.innerText = '0';
+            
+            const list = document.getElementById('notif-list');
+            list.innerHTML = `
+                <div class="empty-state" style="padding: 30px 10px; border: none;">
+                    <i class="fa-regular fa-bell-slash" style="font-size: 1.5rem;"></i>
+                    <p>Brak nowych powiadomień</p>
+                </div>
+            `;
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.topbar-icon-wrap') && !event.target.closest('.user-avatar-wrap')) {
+                const dropdown = document.getElementById('notif-dropdown');
+                const profileDropdown = document.getElementById('profile-dropdown');
+                if (dropdown) dropdown.classList.remove('show');
+                if (profileDropdown) profileDropdown.classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>
